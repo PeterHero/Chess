@@ -5,7 +5,7 @@
     clippy::expect_used
 )]
 
-use std::{fmt::Debug, str::FromStr};
+use std::{fmt::Debug, str::FromStr, vec};
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 enum PieceType {
@@ -23,10 +23,90 @@ enum Team {
     Black,
 }
 
+impl Team {
+    const fn direction(self) -> isize {
+        match self {
+            Self::White => -1,
+            Self::Black => 1,
+        }
+    }
+}
+
 #[derive(Clone, Copy, Debug, PartialEq)]
 struct Piece {
     piece_type: PieceType,
     team: Team,
+}
+
+impl Piece {
+    fn offsets(self) -> Vec<(isize, isize)> {
+        match self.piece_type {
+            PieceType::King => {
+                let mut v = vec![];
+                for i in -1..=1 {
+                    for j in -1..=1 {
+                        if i != 0 && j != 0 {
+                            v.push((i, j));
+                        }
+                    }
+                }
+                v
+                // TODO: castling
+            }
+            PieceType::Queen => {
+                let mut v = vec![];
+                for i in 1..=7 {
+                    // diagonals
+                    v.push((i, i));
+                    v.push((i, -i));
+                    v.push((-i, i));
+                    v.push((-i, -i));
+                    // horizontal and vertical
+                    v.push((0, i));
+                    v.push((0, -i));
+                    v.push((i, 0));
+                    v.push((-i, 0));
+                }
+                v
+            }
+            PieceType::Rook => {
+                let mut v = vec![];
+                for i in 1..=7 {
+                    v.push((0, i));
+                    v.push((0, -i));
+                    v.push((i, 0));
+                    v.push((-i, 0));
+                }
+                v
+            }
+            PieceType::Knight => {
+                vec![
+                    (2, 1),
+                    (2, -1),
+                    (-2, 1),
+                    (-2, -1),
+                    (1, 2),
+                    (1, -2),
+                    (-1, 2),
+                    (-1, -2),
+                ]
+            }
+            PieceType::Bishop => {
+                let mut v = vec![];
+                for i in 1..=7 {
+                    v.push((i, i));
+                    v.push((i, -i));
+                    v.push((-i, i));
+                    v.push((-i, -i));
+                }
+                v
+            }
+            PieceType::Pawn => {
+                // TODO: en passant
+                vec![(self.team.direction(), 0)]
+            }
+        }
+    }
 }
 
 impl FromStr for Piece {
@@ -87,6 +167,25 @@ impl Board {
         Self {
             board: [[None; 8]; 8],
         }
+    }
+
+    #[must_use]
+    pub fn moves(&self, row: usize, col: usize) -> Vec<(usize, usize)> {
+        // TODO: indexes to special types checked for boundaries
+        let piece = self.board[row][col];
+        let Some(piece) = piece else {
+            return vec![];
+        };
+
+        piece
+            .offsets()
+            .iter()
+            .map(|(r, c)| (row as isize + r, col as isize + c))
+            .filter(|(r, c)| *r >= 0 && *c >= 0)
+            .map(|(r, c)| (r as usize, c as usize))
+            .collect()
+        // TODO: coordinates to Moves
+        // TODO: filter legal Moves
     }
 }
 
