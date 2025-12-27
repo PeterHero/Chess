@@ -44,7 +44,7 @@ impl Default for Board {
             Some(Piece::Knight),
             Some(Piece::Rook),
         ];
-        b.board[0] = base_row.clone();
+        b.board[0] = base_row;
         b.board[1] = [Some(Piece::Pawn); 8];
         b.board[6] = [Some(Piece::Pawn); 8];
         b.board[7] = base_row;
