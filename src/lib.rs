@@ -5,13 +5,10 @@
     clippy::expect_used
 )]
 
-use std::{
-    fmt::{Debug, Write},
-    str::FromStr,
-};
+use std::{fmt::Debug, str::FromStr};
 
 #[derive(Clone, Copy, Debug, PartialEq)]
-enum Piece {
+enum PieceType {
     King,
     Queen,
     Rook,
@@ -20,34 +17,65 @@ enum Piece {
     Pawn,
 }
 
+#[derive(Clone, Copy, Debug, PartialEq)]
+enum Team {
+    White,
+    Black,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq)]
+struct Piece {
+    piece_type: PieceType,
+    team: Team,
+}
+
 impl FromStr for Piece {
     type Err = String;
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        match s {
-            "K" => Ok(Self::King),
-            "Q" => Ok(Self::Queen),
-            "R" => Ok(Self::Rook),
-            "N" => Ok(Self::Knight),
-            "B" => Ok(Self::Bishop),
-            "P" => Ok(Self::Pawn),
-            str => Err(format!("Uknown Piece type {str}")),
+        let mut s = s.chars();
+        let team = s.next().ok_or("Missing team when parsing Piece")?;
+        let team = match team {
+            'w' => Team::White,
+            'b' => Team::Black,
+            c => return Err(format!("Unknown Team {c}")),
+        };
+        let piece_type = s.next().ok_or("Missing piece type when parsing Piece")?;
+        let piece_type = match piece_type {
+            'K' => PieceType::King,
+            'Q' => PieceType::Queen,
+            'R' => PieceType::Rook,
+            'N' => PieceType::Knight,
+            'B' => PieceType::Bishop,
+            'P' => PieceType::Pawn,
+            c => return Err(format!("Uknown Piece type {c}")),
+        };
+        if s.next().is_some() {
+            return Err("Too many characters for Piece".to_string());
         }
+        Ok(Self { piece_type, team })
     }
 }
 
 impl std::fmt::Display for Piece {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let c = match self {
-            Self::King => 'K',
-            Self::Queen => 'Q',
-            Self::Rook => 'R',
-            Self::Knight => 'N',
-            Self::Bishop => 'B',
-            Self::Pawn => 'P',
+        let team = match self.team {
+            Team::White => 'w',
+            Team::Black => 'b',
         };
-        f.write_char(c)
+        let piece_type = match self.piece_type {
+            PieceType::King => 'K',
+            PieceType::Queen => 'Q',
+            PieceType::Rook => 'R',
+            PieceType::Knight => 'N',
+            PieceType::Bishop => 'B',
+            PieceType::Pawn => 'P',
+        };
+        let str = format!("{team}{piece_type}");
+        f.write_str(&str)
     }
 }
+
+const EMPTY_SQUARE: &str = "  ";
 
 #[derive(Debug, PartialEq)]
 pub struct Board {
@@ -77,7 +105,7 @@ impl FromStr for Board {
                     .next()
                     .ok_or_else(|| format!("Missing square in row {} col {}!", i + 1, j + 1))?;
                 b.board[i][j] = match square {
-                    " " => None,
+                    EMPTY_SQUARE => None,
                     str => Some(Piece::from_str(str)?),
                 }
             }
@@ -96,14 +124,14 @@ impl FromStr for Board {
 impl Default for Board {
     fn default() -> Self {
         match Self::from_str(concat!(
-            "R,N,B,Q,K,B,N,R\n",
-            "P,P,P,P,P,P,P,P\n",
-            " , , , , , , , \n",
-            " , , , , , , , \n",
-            " , , , , , , , \n",
-            " , , , , , , , \n",
-            "P,P,P,P,P,P,P,P\n",
-            "R,N,B,Q,K,B,N,R"
+            "bR,bN,bB,bQ,bK,bB,bN,bR\n",
+            "bP,bP,bP,bP,bP,bP,bP,bP\n",
+            "  ,  ,  ,  ,  ,  ,  ,  \n",
+            "  ,  ,  ,  ,  ,  ,  ,  \n",
+            "  ,  ,  ,  ,  ,  ,  ,  \n",
+            "  ,  ,  ,  ,  ,  ,  ,  \n",
+            "wP,wP,wP,wP,wP,wP,wP,wP\n",
+            "wR,wN,wB,wQ,wK,wB,wN,wR"
         )) {
             Ok(board) => board,
             Err(err) => panic!("{err}"),
@@ -120,7 +148,7 @@ impl std::fmt::Display for Board {
                 if let Some(piece) = square {
                     str += &piece.to_string();
                 } else {
-                    str += " ";
+                    str += EMPTY_SQUARE;
                 }
                 str += "|";
             }
