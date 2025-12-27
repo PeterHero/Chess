@@ -3,7 +3,7 @@ use std::{
     str::FromStr,
 };
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, PartialEq)]
 enum Piece {
     King,
     Queen,
@@ -42,7 +42,7 @@ impl std::fmt::Display for Piece {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct Board {
     board: [[Option<Piece>; 8]; 8],
 }
@@ -116,5 +116,17 @@ impl std::fmt::Display for Board {
             str += "\n";
         }
         f.write_str(&str)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn default_board_does_not_panic() {
+        let default = Board::default();
+        let empty = Board::new();
+        assert_ne!(default, empty);
     }
 }
