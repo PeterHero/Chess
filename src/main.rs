@@ -1,4 +1,6 @@
+use chess::Board;
+
 fn main() {
-    let board = chess::Board::default();
+    let board = Board::default();
     println!("{board}");
 }

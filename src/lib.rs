@@ -1,4 +1,7 @@
-use std::fmt::{Debug, Write};
+use std::{
+    fmt::{Debug, Write},
+    str::FromStr,
+};
 
 #[derive(Clone, Copy, Debug)]
 enum Piece {
@@ -8,6 +11,21 @@ enum Piece {
     Knight,
     Bishop,
     Pawn,
+}
+
+impl FromStr for Piece {
+    type Err = String;
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "K" => Ok(Self::King),
+            "Q" => Ok(Self::Queen),
+            "R" => Ok(Self::Rook),
+            "N" => Ok(Self::Knight),
+            "B" => Ok(Self::Bishop),
+            "P" => Ok(Self::Pawn),
+            str => Err(format!("Uknown Piece type {str}")),
+        }
+    }
 }
 
 impl std::fmt::Display for Piece {
@@ -29,26 +47,56 @@ pub struct Board {
     board: [[Option<Piece>; 8]; 8],
 }
 
+impl Board {
+    fn new() -> Self {
+        Board {
+            board: [[None; 8]; 8],
+        }
+    }
+}
+
+impl FromStr for Board {
+    type Err = String;
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let mut b = Board::new();
+        let mut rows = s.lines();
+        for i in 0..8 {
+            let row = rows.next().ok_or(format!("Missing row {}!", i + 1))?;
+            let mut row = row.split(",");
+            for j in 0..8 {
+                let square =
+                    row.next()
+                        .ok_or(format!("Missing square in row {} col {}!", i + 1, j + 1))?;
+                b.board[i][j] = match square {
+                    " " => None,
+                    str => Some(Piece::from_str(str)?),
+                }
+            }
+            if row.next().is_some() {
+                return Err(format!("Too many squares in row {}!", i + 1));
+            }
+        }
+        if rows.next().is_some() {
+            return Err("Too many rows!".to_string());
+        }
+
+        Ok(b)
+    }
+}
+
 impl Default for Board {
     fn default() -> Self {
-        let mut b = Board {
-            board: [[None; 8]; 8],
-        };
-        let base_row = [
-            Some(Piece::Rook),
-            Some(Piece::Knight),
-            Some(Piece::Bishop),
-            Some(Piece::Queen),
-            Some(Piece::King),
-            Some(Piece::Bishop),
-            Some(Piece::Knight),
-            Some(Piece::Rook),
-        ];
-        b.board[0] = base_row;
-        b.board[1] = [Some(Piece::Pawn); 8];
-        b.board[6] = [Some(Piece::Pawn); 8];
-        b.board[7] = base_row;
-        b
+        Board::from_str(concat!(
+            "R,N,B,Q,K,B,N,R\n",
+            "P,P,P,P,P,P,P,P\n",
+            " , , , , , , , \n",
+            " , , , , , , , \n",
+            " , , , , , , , \n",
+            " , , , , , , , \n",
+            "P,P,P,P,P,P,P,P\n",
+            "R,N,B,Q,K,B,N,R"
+        ))
+        .expect("Default constructor should be correct")
     }
 }
 
