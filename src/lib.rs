@@ -7,7 +7,7 @@ enum Piece {
     Rook,
     Knight,
     Bishop,
-    Pawn
+    Pawn,
 }
 
 impl std::fmt::Display for Piece {
@@ -16,9 +16,9 @@ impl std::fmt::Display for Piece {
             Self::King => 'K',
             Self::Queen => 'Q',
             Self::Rook => 'R',
-            Self:: Knight => 'N',
+            Self::Knight => 'N',
             Self::Bishop => 'B',
-            Self::Pawn => 'P'
+            Self::Pawn => 'P',
         };
         f.write_char(c)
     }
@@ -26,13 +26,24 @@ impl std::fmt::Display for Piece {
 
 #[derive(Debug)]
 pub struct Board {
-    board: [[Option<Piece>; 8]; 8]
+    board: [[Option<Piece>; 8]; 8],
 }
 
 impl Default for Board {
     fn default() -> Self {
-        let mut b = Board {board: [[None; 8]; 8]};
-        let base_row = [Some(Piece::Rook), Some(Piece::Knight), Some(Piece::Bishop), Some(Piece::Queen), Some(Piece::King), Some(Piece::Bishop), Some(Piece::Knight), Some(Piece::Rook)];
+        let mut b = Board {
+            board: [[None; 8]; 8],
+        };
+        let base_row = [
+            Some(Piece::Rook),
+            Some(Piece::Knight),
+            Some(Piece::Bishop),
+            Some(Piece::Queen),
+            Some(Piece::King),
+            Some(Piece::Bishop),
+            Some(Piece::Knight),
+            Some(Piece::Rook),
+        ];
         b.board[0] = base_row.clone();
         b.board[1] = [Some(Piece::Pawn); 8];
         b.board[6] = [Some(Piece::Pawn); 8];
@@ -49,7 +60,7 @@ impl std::fmt::Display for Board {
             for square in row {
                 let c = match square {
                     Some(piece) => piece.to_string(),
-                    None => ' '.to_string()
+                    None => ' '.to_string(),
                 };
                 str += &c;
                 str += "|";
