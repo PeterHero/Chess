@@ -1,3 +1,10 @@
+#![warn(
+    clippy::pedantic,
+    clippy::nursery,
+    clippy::unwrap_used,
+    clippy::expect_used
+)]
+
 use std::{
     fmt::{Debug, Write},
     str::FromStr,
@@ -48,8 +55,8 @@ pub struct Board {
 }
 
 impl Board {
-    fn new() -> Self {
-        Board {
+    const fn new() -> Self {
+        Self {
             board: [[None; 8]; 8],
         }
     }
@@ -58,15 +65,17 @@ impl Board {
 impl FromStr for Board {
     type Err = String;
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let mut b = Board::new();
+        let mut b = Self::new();
         let mut rows = s.lines();
         for i in 0..8 {
-            let row = rows.next().ok_or(format!("Missing row {}!", i + 1))?;
-            let mut row = row.split(",");
+            let row = rows
+                .next()
+                .ok_or_else(|| format!("Missing row {}!", i + 1))?;
+            let mut row = row.split(',');
             for j in 0..8 {
-                let square =
-                    row.next()
-                        .ok_or(format!("Missing square in row {} col {}!", i + 1, j + 1))?;
+                let square = row
+                    .next()
+                    .ok_or_else(|| format!("Missing square in row {} col {}!", i + 1, j + 1))?;
                 b.board[i][j] = match square {
                     " " => None,
                     str => Some(Piece::from_str(str)?),
@@ -86,7 +95,7 @@ impl FromStr for Board {
 
 impl Default for Board {
     fn default() -> Self {
-        Board::from_str(concat!(
+        match Self::from_str(concat!(
             "R,N,B,Q,K,B,N,R\n",
             "P,P,P,P,P,P,P,P\n",
             " , , , , , , , \n",
@@ -95,8 +104,10 @@ impl Default for Board {
             " , , , , , , , \n",
             "P,P,P,P,P,P,P,P\n",
             "R,N,B,Q,K,B,N,R"
-        ))
-        .expect("Default constructor should be correct")
+        )) {
+            Ok(board) => board,
+            Err(err) => panic!("{err}"),
+        }
     }
 }
 
@@ -106,11 +117,11 @@ impl std::fmt::Display for Board {
         for row in &self.board {
             str += "|";
             for square in row {
-                let c = match square {
-                    Some(piece) => piece.to_string(),
-                    None => ' '.to_string(),
-                };
-                str += &c;
+                if let Some(piece) = square {
+                    str += &piece.to_string();
+                } else {
+                    str += " ";
+                }
                 str += "|";
             }
             str += "\n";
