@@ -36,3 +36,15 @@ impl Pos {
         self.col
     }
 }
+
+#[derive(Debug)]
+pub struct Square {
+    pos: Pos,
+    content: Option<Piece>,
+}
+
+impl Square {
+    pub const fn new(pos: Pos, content: Option<Piece>) -> Self {
+        Self { pos, content }
+    }
+}

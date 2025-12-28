@@ -6,6 +6,7 @@
 )]
 
 mod board;
+mod movement;
 mod piece;
 mod square;
 
