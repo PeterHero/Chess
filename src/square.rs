@@ -47,4 +47,12 @@ impl Square {
     pub const fn new(pos: Pos, content: Option<Piece>) -> Self {
         Self { pos, content }
     }
+
+    pub const fn pos(&self) -> Pos {
+        self.pos
+    }
+
+    pub const fn content(&self) -> Option<Piece> {
+        self.content
+    }
 }

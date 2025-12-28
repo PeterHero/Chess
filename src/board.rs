@@ -22,6 +22,10 @@ impl Board {
         self.board[pos.row()][pos.col()]
     }
 
+    const fn set(&mut self, pos: &Pos, content: Option<Piece>) {
+        self.board[pos.row()][pos.col()] = content;
+    }
+
     #[must_use]
     pub fn moves(&self, pos: Pos) -> Vec<Move> {
         let piece = self.at(&pos);
@@ -41,6 +45,11 @@ impl Board {
             })
             .collect()
         // TODO: filter legal Moves
+    }
+
+    pub const fn apply(&mut self, move_cmd: &Move) {
+        self.set(&move_cmd.from().pos(), None);
+        self.set(&move_cmd.to().pos(), move_cmd.from().content());
     }
 }
 
