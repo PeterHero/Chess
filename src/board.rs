@@ -1,6 +1,7 @@
 use std::str::FromStr;
 
 use crate::piece::Piece;
+use crate::square::Pos;
 
 const EMPTY_SQUARE: &str = "  ";
 
@@ -16,10 +17,13 @@ impl Board {
         }
     }
 
+    const fn at(&self, pos: &Pos) -> Option<Piece> {
+        self.board[pos.row()][pos.col()]
+    }
+
     #[must_use]
-    pub fn moves(&self, row: usize, col: usize) -> Vec<(usize, usize)> {
-        // TODO: indexes to special types checked for boundaries
-        let piece = self.board[row][col];
+    pub fn moves(&self, pos: Pos) -> Vec<Pos> {
+        let piece = self.at(&pos);
         let Some(piece) = piece else {
             return vec![];
         };
@@ -27,9 +31,7 @@ impl Board {
         piece
             .offsets()
             .iter()
-            .map(|(r, c)| (row as isize + r, col as isize + c))
-            .filter(|(r, c)| *r >= 0 && *c >= 0)
-            .map(|(r, c)| (r as usize, c as usize))
+            .filter_map(|(r, c)| pos.checked_add((*r, *c)))
             .collect()
         // TODO: coordinates to Moves
         // TODO: filter legal Moves

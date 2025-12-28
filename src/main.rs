@@ -1,8 +1,11 @@
 use chess::Board;
+use chess::Pos;
 
 fn main() {
     let board = Board::default();
     println!("{board}");
-    let moves = board.moves(1, 0);
-    println!("{:?}", moves);
+    if let Some(pos) = Pos::new(1, 0) {
+        let moves = board.moves(pos);
+        println!("{:?}", moves);
+    }
 }

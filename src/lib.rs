@@ -7,5 +7,7 @@
 
 mod board;
 mod piece;
+mod square;
 
 pub use board::Board;
+pub use square::Pos;
