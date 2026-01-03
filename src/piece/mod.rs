@@ -1,10 +1,12 @@
-mod piece_type;
-mod team;
+pub mod piece_type;
+pub mod team;
 
 use piece_type::PieceType;
 use team::Team;
 
 use std::{fmt::Debug, str::FromStr, vec};
+
+use crate::{Pos, movement::RawMove};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct Piece {
@@ -12,15 +14,21 @@ pub struct Piece {
     team: Team,
 }
 
+fn checked_push(vec: &mut Vec<RawMove>, from: Pos, (c, r): (isize, isize)) {
+    if let Some(to) = Pos::checked_add(from, (c, r)) {
+        vec.push(RawMove { from, to });
+    }
+}
+
 impl Piece {
-    pub fn offsets(self) -> Vec<(isize, isize)> {
+    pub fn raw_moves(self, from: Pos) -> Vec<RawMove> {
         match self.piece_type {
             PieceType::King => {
                 let mut v = vec![];
                 for i in -1..=1 {
                     for j in -1..=1 {
                         if i != 0 && j != 0 {
-                            v.push((i, j));
+                            checked_push(&mut v, from, (i, j));
                         }
                     }
                 }
@@ -31,30 +39,30 @@ impl Piece {
                 let mut v = vec![];
                 for i in 1..=7 {
                     // diagonals
-                    v.push((i, i));
-                    v.push((i, -i));
-                    v.push((-i, i));
-                    v.push((-i, -i));
+                    checked_push(&mut v, from, (i, i));
+                    checked_push(&mut v, from, (i, -i));
+                    checked_push(&mut v, from, (-i, i));
+                    checked_push(&mut v, from, (-i, -i));
                     // horizontal and vertical
-                    v.push((0, i));
-                    v.push((0, -i));
-                    v.push((i, 0));
-                    v.push((-i, 0));
+                    checked_push(&mut v, from, (0, i));
+                    checked_push(&mut v, from, (0, -i));
+                    checked_push(&mut v, from, (i, 0));
+                    checked_push(&mut v, from, (-i, 0));
                 }
                 v
             }
             PieceType::Rook => {
                 let mut v = vec![];
                 for i in 1..=7 {
-                    v.push((0, i));
-                    v.push((0, -i));
-                    v.push((i, 0));
-                    v.push((-i, 0));
+                    checked_push(&mut v, from, (0, i));
+                    checked_push(&mut v, from, (0, -i));
+                    checked_push(&mut v, from, (i, 0));
+                    checked_push(&mut v, from, (-i, 0));
                 }
                 v
             }
             PieceType::Knight => {
-                vec![
+                let offsets = vec![
                     (2, 1),
                     (2, -1),
                     (-2, 1),
@@ -63,23 +71,39 @@ impl Piece {
                     (1, -2),
                     (-1, 2),
                     (-1, -2),
-                ]
+                ];
+
+                let mut v = vec![];
+                for (i, j) in offsets {
+                    checked_push(&mut v, from, (i, j));
+                }
+                v
             }
             PieceType::Bishop => {
                 let mut v = vec![];
                 for i in 1..=7 {
-                    v.push((i, i));
-                    v.push((i, -i));
-                    v.push((-i, i));
-                    v.push((-i, -i));
+                    checked_push(&mut v, from, (i, i));
+                    checked_push(&mut v, from, (i, -i));
+                    checked_push(&mut v, from, (-i, i));
+                    checked_push(&mut v, from, (-i, -i));
                 }
                 v
             }
             PieceType::Pawn => {
                 // TODO: en passant
-                vec![(self.team.direction(), 0)]
+                let mut v = vec![];
+                checked_push(&mut v, from, (self.team.direction(), 0));
+                v
             }
         }
+    }
+
+    pub const fn team(self) -> Team {
+        self.team
+    }
+
+    pub const fn piece_type(self) -> PieceType {
+        self.piece_type
     }
 }
 

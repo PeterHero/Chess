@@ -1,7 +1,8 @@
 use std::str::FromStr;
 
-use crate::movement::Move;
-use crate::piece::Piece;
+use crate::movement::{LegalMove, PossibleMove, RawMove};
+use crate::piece::piece_type::PieceType;
+use crate::piece::{self, Piece};
 use crate::square::{Pos, Square};
 
 const EMPTY_SQUARE: &str = "  ";
@@ -18,7 +19,7 @@ impl Board {
         }
     }
 
-    const fn at(&self, pos: &Pos) -> Option<Piece> {
+    pub const fn at(&self, pos: &Pos) -> Option<Piece> {
         self.board[pos.row()][pos.col()]
     }
 
@@ -26,6 +27,83 @@ impl Board {
         self.board[pos.row()][pos.col()] = content;
     }
 
+    fn is_empty_between(&self, from: Pos, to: Pos) -> bool {
+        let Ok(to_row) = isize::try_from(to.row()) else {
+            return false;
+        };
+        let Ok(from_row) = isize::try_from(from.row()) else {
+            return false;
+        };
+        let Ok(to_col) = isize::try_from(to.col()) else {
+            return false;
+        };
+        let Ok(from_col) = isize::try_from(from.col()) else {
+            return false;
+        };
+
+        let row_diff = to_row - from_row;
+        let col_diff = to_col - from_col;
+        let row_dir = match row_diff {
+            0 => 0,
+            n => n / n.abs(),
+        };
+        let col_dir = match col_diff {
+            0 => 0,
+            n => n / n.abs(),
+        };
+
+        let Some(mut pos) = from.checked_add((row_dir, col_dir)) else {
+            return false;
+        };
+        while pos != to {
+            if self.at(&pos).is_some() {
+                return false;
+            }
+            let Some(new_pos) = pos.checked_add((row_dir, col_dir)) else {
+                return false;
+            };
+            pos = new_pos;
+        }
+        true
+    }
+
+    #[must_use]
+    pub fn possible_moves(&self, sq: Square) -> Vec<PossibleMove> {
+        let Some(piece) = sq.content() else {
+            return vec![];
+        };
+
+        piece
+            .raw_moves(sq.pos())
+            .iter()
+            .filter(|raw_move| {
+                if let Some(to_piece) = self.at(&raw_move.to)
+                    && to_piece.team() == piece.team()
+                {
+                    false
+                } else {
+                    true
+                }
+            })
+            .filter(|raw_move| match piece.piece_type() {
+                PieceType::Rook | PieceType::Bishop | PieceType::Queen => {
+                    self.is_empty_between(sq.pos(), raw_move.to)
+                }
+                _ => true,
+            })
+            .map(|raw_move| PossibleMove::new(sq, Square::new(raw_move.to, self)))
+            .collect()
+    }
+
+    pub fn legal_moves(&self, sq: Square) -> Vec<LegalMove> {
+        todo!()
+    }
+
+    pub fn is_legal(&self, mv: &PossibleMove) -> bool {
+        todo!()
+    }
+
+    /*
     #[must_use]
     pub fn moves(&self, pos: Pos) -> Vec<Move> {
         let piece = self.at(&pos);
@@ -51,6 +129,7 @@ impl Board {
         self.set(&move_cmd.from().pos(), None);
         self.set(&move_cmd.to().pos(), move_cmd.from().content());
     }
+     */
 }
 
 impl FromStr for Board {
@@ -130,5 +209,15 @@ mod tests {
         let default = Board::default();
         let empty = Board::new();
         assert_ne!(default, empty);
+    }
+
+    #[test]
+    #[allow(clippy::unwrap_used)]
+    fn is_empty_between_on_default() {
+        let default = Board::default();
+        assert!(default.is_empty_between(Pos::new(1, 1).unwrap(), Pos::new(6, 1).unwrap()));
+        assert!(!default.is_empty_between(Pos::new(1, 1).unwrap(), Pos::new(7, 1).unwrap()));
+        assert!(default.is_empty_between(Pos::new(1, 1).unwrap(), Pos::new(3, 3).unwrap()));
+        assert!(default.is_empty_between(Pos::new(1, 5).unwrap(), Pos::new(5, 1).unwrap()));
     }
 }

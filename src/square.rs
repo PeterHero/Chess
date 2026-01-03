@@ -1,6 +1,6 @@
-use crate::piece::Piece;
+use crate::{Board, piece::Piece};
 
-#[derive(Copy, Clone, Debug)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub struct Pos {
     row: usize,
     col: usize,
@@ -19,7 +19,7 @@ impl Pos {
     }
 
     #[must_use]
-    pub fn checked_add(&self, (r, c): (isize, isize)) -> Option<Self> {
+    pub fn checked_add(self, (r, c): (isize, isize)) -> Option<Self> {
         Self::new(
             isize::try_from(self.row).ok()? + r,
             isize::try_from(self.col).ok()? + c,
@@ -37,15 +37,18 @@ impl Pos {
     }
 }
 
-#[derive(Debug)]
+#[derive(Clone, Copy, Debug)]
 pub struct Square {
     pos: Pos,
     content: Option<Piece>,
 }
 
 impl Square {
-    pub const fn new(pos: Pos, content: Option<Piece>) -> Self {
-        Self { pos, content }
+    pub const fn new(pos: Pos, board: &Board) -> Self {
+        Self {
+            pos,
+            content: board.at(&pos),
+        }
     }
 
     pub const fn pos(&self) -> Pos {
