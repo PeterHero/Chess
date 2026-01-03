@@ -11,4 +11,5 @@ mod piece;
 mod square;
 
 pub use board::Board;
-pub use square::Pos;
+pub use piece::team::Team;
+pub use square::{Pos, Square};

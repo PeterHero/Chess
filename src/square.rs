@@ -1,6 +1,6 @@
 use crate::{Board, piece::Piece};
 
-#[derive(Copy, Clone, Debug, PartialEq, Eq)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
 pub struct Pos {
     row: usize,
     col: usize,
@@ -37,24 +37,27 @@ impl Pos {
     }
 }
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub struct Square {
     pos: Pos,
     content: Option<Piece>,
 }
 
 impl Square {
+    #[must_use]
     pub const fn new(pos: Pos, board: &Board) -> Self {
         Self {
             pos,
-            content: board.at(&pos),
+            content: board.at(pos),
         }
     }
 
+    #[must_use]
     pub const fn pos(&self) -> Pos {
         self.pos
     }
 
+    #[must_use]
     pub const fn content(&self) -> Option<Piece> {
         self.content
     }

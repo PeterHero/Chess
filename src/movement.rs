@@ -22,6 +22,14 @@ impl PossibleMove {
     pub(crate) const fn new(from: Square, to: Square) -> Self {
         Self { from, to }
     }
+
+    pub const fn from(&self) -> Square {
+        self.from
+    }
+
+    pub const fn to(&self) -> Square {
+        self.to
+    }
 }
 
 impl LegalMove {

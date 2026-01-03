@@ -8,7 +8,7 @@ use std::{fmt::Debug, str::FromStr, vec};
 
 use crate::{Pos, movement::RawMove};
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub struct Piece {
     piece_type: PieceType,
     team: Team,
@@ -91,6 +91,8 @@ impl Piece {
             }
             PieceType::Pawn => {
                 // TODO: en passant
+                // TODO: move 2 squares at the start
+                // TODO: transformation on last row
                 let mut v = vec![];
                 checked_push(&mut v, from, (self.team.direction(), 0));
                 v

@@ -1,13 +1,15 @@
+use std::collections::HashSet;
 use std::str::FromStr;
 
-use crate::movement::{LegalMove, PossibleMove, RawMove};
+use crate::movement::{LegalMove, PossibleMove};
+use crate::piece::Piece;
 use crate::piece::piece_type::PieceType;
-use crate::piece::{self, Piece};
+use crate::piece::team::Team;
 use crate::square::{Pos, Square};
 
 const EMPTY_SQUARE: &str = "  ";
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq, Clone)]
 pub struct Board {
     board: [[Option<Piece>; 8]; 8],
 }
@@ -19,11 +21,12 @@ impl Board {
         }
     }
 
-    pub const fn at(&self, pos: &Pos) -> Option<Piece> {
+    #[must_use]
+    pub const fn at(&self, pos: Pos) -> Option<Piece> {
         self.board[pos.row()][pos.col()]
     }
 
-    const fn set(&mut self, pos: &Pos, content: Option<Piece>) {
+    const fn set(&mut self, pos: Pos, content: Option<Piece>) {
         self.board[pos.row()][pos.col()] = content;
     }
 
@@ -56,7 +59,7 @@ impl Board {
             return false;
         };
         while pos != to {
-            if self.at(&pos).is_some() {
+            if self.at(pos).is_some() {
                 return false;
             }
             let Some(new_pos) = pos.checked_add((row_dir, col_dir)) else {
@@ -67,23 +70,17 @@ impl Board {
         true
     }
 
-    #[must_use]
-    pub fn possible_moves(&self, sq: Square) -> Vec<PossibleMove> {
+    fn possible_moves(&self, sq: Square) -> Vec<PossibleMove> {
         let Some(piece) = sq.content() else {
             return vec![];
         };
 
         piece
             .raw_moves(sq.pos())
-            .iter()
+            .into_iter()
             .filter(|raw_move| {
-                if let Some(to_piece) = self.at(&raw_move.to)
-                    && to_piece.team() == piece.team()
-                {
-                    false
-                } else {
-                    true
-                }
+                self.at(raw_move.to)
+                    .is_none_or(|to_piece| to_piece.team() != piece.team())
             })
             .filter(|raw_move| match piece.piece_type() {
                 PieceType::Rook | PieceType::Bishop | PieceType::Queen => {
@@ -95,41 +92,82 @@ impl Board {
             .collect()
     }
 
-    pub fn legal_moves(&self, sq: Square) -> Vec<LegalMove> {
-        todo!()
+    fn enumerate_pieces(&self, team: Team) -> HashSet<Square> {
+        let mut pieces = HashSet::new();
+        for row in 0..8 {
+            for col in 0..8 {
+                if let Some(pos) = Pos::new(row, col) {
+                    let sq = Square::new(pos, self);
+                    if let Some(piece) = sq.content()
+                        && piece.team() == team
+                    {
+                        pieces.insert(sq);
+                    }
+                }
+            }
+        }
+        pieces
     }
 
-    pub fn is_legal(&self, mv: &PossibleMove) -> bool {
-        todo!()
+    fn attacked_squares(&self, team: Team) -> HashSet<Square> {
+        let team_pieces = self.enumerate_pieces(team);
+        let mut attacked = HashSet::new();
+        for sq in team_pieces {
+            let moves = self.possible_moves(sq);
+            for mv in moves {
+                attacked.insert(mv.to());
+            }
+        }
+
+        attacked
     }
 
-    /*
     #[must_use]
-    pub fn moves(&self, pos: Pos) -> Vec<Move> {
-        let piece = self.at(&pos);
-        let Some(piece) = piece else {
-            return vec![];
+    pub fn legal_moves(&self, sq: Square) -> Vec<LegalMove> {
+        self.possible_moves(sq)
+            .into_iter()
+            .filter(|m| self.is_legal(m))
+            .map(|m| LegalMove::new(m.from(), m.to()))
+            .collect()
+    }
+
+    #[must_use]
+    pub fn team_legal_moves(&self, team: Team) -> Vec<LegalMove> {
+        let team_pieces = self.enumerate_pieces(team);
+        let mut moves = vec![];
+        for sq in team_pieces {
+            for mv in self.legal_moves(sq) {
+                moves.push(mv);
+            }
+        }
+
+        moves
+    }
+
+    fn is_legal(&self, mv: &PossibleMove) -> bool {
+        let Some(piece) = mv.from().content() else {
+            return false;
         };
 
-        piece
-            .offsets()
-            .iter()
-            .filter_map(|(r, c)| pos.checked_add((*r, *c)))
-            .map(|to| {
-                Move::new(
-                    Square::new(pos, self.at(&pos)),
-                    Square::new(to, self.at(&to)),
-                )
-            })
-            .collect()
-        // TODO: filter legal Moves
+        // board after applied move
+        let mut new_board = self.clone();
+        new_board.set(mv.from().pos(), None);
+        new_board.set(mv.to().pos(), mv.from().content());
+
+        let attacked = new_board.attacked_squares(piece.team().enemy());
+        if attacked.iter().any(|sq| {
+            sq.content()
+                .is_some_and(|p| p.piece_type() == PieceType::King)
+        }) {
+            return false;
+        }
+        true
     }
 
-    pub const fn apply(&mut self, move_cmd: &Move) {
-        self.set(&move_cmd.from().pos(), None);
-        self.set(&move_cmd.to().pos(), move_cmd.from().content());
+    pub const fn apply_move(&mut self, mv: LegalMove) {
+        self.set(mv.from().pos(), None);
+        self.set(mv.to().pos(), mv.from().content());
     }
-     */
 }
 
 impl FromStr for Board {
@@ -219,5 +257,25 @@ mod tests {
         assert!(!default.is_empty_between(Pos::new(1, 1).unwrap(), Pos::new(7, 1).unwrap()));
         assert!(default.is_empty_between(Pos::new(1, 1).unwrap(), Pos::new(3, 3).unwrap()));
         assert!(default.is_empty_between(Pos::new(1, 5).unwrap(), Pos::new(5, 1).unwrap()));
+    }
+
+    #[test]
+    #[allow(clippy::unwrap_used)]
+    fn possible_moves() {
+        let mut default = Board::default();
+        assert!(
+            !dbg!(default.possible_moves(Square::new(Pos::new(1, 0).unwrap(), &default)))
+                .is_empty()
+        );
+        assert!(
+            dbg!(default.possible_moves(Square::new(Pos::new(0, 0).unwrap(), &default))).is_empty()
+        );
+
+        default.set(Pos::new(1, 0).unwrap(), None);
+
+        assert!(
+            !dbg!(default.possible_moves(Square::new(Pos::new(0, 0).unwrap(), &default)))
+                .is_empty()
+        );
     }
 }
