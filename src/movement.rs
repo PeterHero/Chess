@@ -1,4 +1,6 @@
-use crate::{Pos, square::Square};
+use std::marker::PhantomData;
+
+use crate::{Pos, piece::team::Side, square::Square};
 
 #[derive(Clone, Copy, Debug)]
 pub struct RawMove {
@@ -13,9 +15,10 @@ pub struct PossibleMove {
 }
 
 #[derive(Clone, Copy, Debug)]
-pub struct LegalMove {
+pub struct LegalMove<S: Side> {
     from: Square,
     to: Square,
+    _side: PhantomData<S>,
 }
 
 impl PossibleMove {
@@ -32,9 +35,13 @@ impl PossibleMove {
     }
 }
 
-impl LegalMove {
+impl<S: Side> LegalMove<S> {
     pub(crate) const fn new(from: Square, to: Square) -> Self {
-        Self { from, to }
+        Self {
+            from,
+            to,
+            _side: PhantomData,
+        }
     }
 
     pub const fn from(&self) -> Square {

@@ -1,23 +1,26 @@
 use std::collections::HashSet;
+use std::marker::PhantomData;
 use std::str::FromStr;
 
 use crate::movement::{LegalMove, PossibleMove};
 use crate::piece::Piece;
 use crate::piece::piece_type::PieceType;
-use crate::piece::team::Team;
+use crate::piece::team::{Side, Team, White};
 use crate::square::{Pos, Square};
 
 const EMPTY_SQUARE: &str = "  ";
 
 #[derive(Debug, PartialEq, Eq, Clone)]
-pub struct Board {
+pub struct Board<S: Side + Clone> {
     board: [[Option<Piece>; 8]; 8],
+    _side: PhantomData<S>,
 }
 
-impl Board {
+impl<S: Side + Clone> Board<S> {
     const fn new() -> Self {
         Self {
             board: [[None; 8]; 8],
+            _side: PhantomData,
         }
     }
 
@@ -28,6 +31,11 @@ impl Board {
 
     const fn set(&mut self, pos: Pos, content: Option<Piece>) {
         self.board[pos.row()][pos.col()] = content;
+    }
+
+    #[must_use]
+    pub const fn team(&self) -> Team {
+        S::TEAM
     }
 
     fn is_empty_between(&self, from: Pos, to: Pos) -> bool {
@@ -123,20 +131,26 @@ impl Board {
     }
 
     #[must_use]
-    pub fn legal_moves(&self, sq: Square) -> Vec<LegalMove> {
-        self.possible_moves(sq)
-            .into_iter()
-            .filter(|m| self.is_legal(m))
-            .map(|m| LegalMove::new(m.from(), m.to()))
-            .collect()
+    pub fn legal_moves_sq(&self, sq: Square) -> Vec<LegalMove<S>> {
+        if let Some(piece) = sq.content()
+            && piece.team() == S::TEAM
+        {
+            self.possible_moves(sq)
+                .into_iter()
+                .filter(|m| self.is_legal(m))
+                .map(|m| LegalMove::new(m.from(), m.to()))
+                .collect()
+        } else {
+            vec![]
+        }
     }
 
     #[must_use]
-    pub fn team_legal_moves(&self, team: Team) -> Vec<LegalMove> {
-        let team_pieces = self.enumerate_pieces(team);
+    pub fn team_legal_moves(&self) -> Vec<LegalMove<S>> {
+        let team_pieces = self.enumerate_pieces(S::TEAM);
         let mut moves = vec![];
         for sq in team_pieces {
-            for mv in self.legal_moves(sq) {
+            for mv in self.legal_moves_sq(sq) {
                 moves.push(mv);
             }
         }
@@ -164,13 +178,20 @@ impl Board {
         true
     }
 
-    pub const fn apply_move(&mut self, mv: LegalMove) {
-        self.set(mv.from().pos(), None);
-        self.set(mv.to().pos(), mv.from().content());
+    #[must_use]
+    pub const fn apply_move(&self, mv: &LegalMove<S>) -> Board<S::Other> {
+        let mut new_board = Board {
+            board: self.board,
+            _side: PhantomData,
+        };
+
+        new_board.set(mv.from().pos(), None);
+        new_board.set(mv.to().pos(), mv.from().content());
+        new_board
     }
 }
 
-impl FromStr for Board {
+impl<S: Side + Clone> FromStr for Board<S> {
     type Err = String;
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let mut b = Self::new();
@@ -201,7 +222,7 @@ impl FromStr for Board {
     }
 }
 
-impl Default for Board {
+impl Default for Board<White> {
     fn default() -> Self {
         match Self::from_str(concat!(
             "bR,bN,bB,bQ,bK,bB,bN,bR\n",
@@ -219,7 +240,7 @@ impl Default for Board {
     }
 }
 
-impl std::fmt::Display for Board {
+impl<S: Side + Clone> std::fmt::Display for Board<S> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let mut str = String::new();
         for row in &self.board {

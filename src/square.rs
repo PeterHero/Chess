@@ -1,3 +1,4 @@
+use crate::piece::team::Side;
 use crate::{Board, piece::Piece};
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
@@ -45,7 +46,7 @@ pub struct Square {
 
 impl Square {
     #[must_use]
-    pub const fn new(pos: Pos, board: &Board) -> Self {
+    pub const fn new<S: Side + Clone>(pos: Pos, board: &Board<S>) -> Self {
         Self {
             pos,
             content: board.at(pos),

@@ -1,20 +1,40 @@
-use chess::Board;
-use chess::Team;
+use chess::{Black, Board, White};
+
+enum Game {
+    White(Board<White>),
+    Black(Board<Black>),
+}
 
 fn main() {
-    let mut board = Board::default();
-    println!("{board}");
+    let mut game = Game::White(Board::default());
+    match game {
+        Game::White(ref board) => println!("{board}"),
+        Game::Black(ref board) => println!("{board}"),
+    }
 
-    let mut team = Team::White;
-    // for _ in 0..300 {
-    loop {
-        let moves = board.team_legal_moves(team);
-        if moves.is_empty() {
-            println!("{:?} has no legal moves, GG!", team);
-            break;
+    for _ in 0..10 {
+        // loop {
+        game = match game {
+            Game::White(board) => {
+                let moves = board.team_legal_moves();
+                if moves.is_empty() {
+                    println!("{:?} has no legal moves, GG!", board.team());
+                    break;
+                }
+                let board = board.apply_move(&moves[0]);
+                println!("{board}");
+                Game::Black(board)
+            }
+            Game::Black(board) => {
+                let moves = board.team_legal_moves();
+                if moves.is_empty() {
+                    println!("{:?} has no legal moves, GG!", board.team());
+                    break;
+                }
+                let board = board.apply_move(&moves[0]);
+                println!("{board}");
+                Game::White(board)
+            }
         }
-        board.apply_move(moves[0]);
-        team = team.enemy();
-        println!("{board}");
     }
 }
