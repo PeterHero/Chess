@@ -26,11 +26,11 @@ impl<S: Side + Clone> Board<S> {
 
     #[must_use]
     pub const fn at(&self, pos: Pos) -> Option<Piece> {
-        self.board[pos.row()][pos.col()]
+        self.board[pos.rank()][pos.file()]
     }
 
     const fn set(&mut self, pos: Pos, content: Option<Piece>) {
-        self.board[pos.row()][pos.col()] = content;
+        self.board[pos.rank()][pos.file()] = content;
     }
 
     #[must_use]
@@ -39,38 +39,38 @@ impl<S: Side + Clone> Board<S> {
     }
 
     fn is_empty_between(&self, from: Pos, to: Pos) -> bool {
-        let Ok(to_row) = isize::try_from(to.row()) else {
+        let Ok(to_rank) = isize::try_from(to.rank()) else {
             return false;
         };
-        let Ok(from_row) = isize::try_from(from.row()) else {
+        let Ok(from_rank) = isize::try_from(from.rank()) else {
             return false;
         };
-        let Ok(to_col) = isize::try_from(to.col()) else {
+        let Ok(to_file) = isize::try_from(to.file()) else {
             return false;
         };
-        let Ok(from_col) = isize::try_from(from.col()) else {
+        let Ok(from_file) = isize::try_from(from.file()) else {
             return false;
         };
 
-        let row_diff = to_row - from_row;
-        let col_diff = to_col - from_col;
-        let row_dir = match row_diff {
+        let rank_diff = to_rank - from_rank;
+        let file_diff = to_file - from_file;
+        let rank_dir = match rank_diff {
             0 => 0,
             n => n / n.abs(),
         };
-        let col_dir = match col_diff {
+        let file_dir = match file_diff {
             0 => 0,
             n => n / n.abs(),
         };
 
-        let Some(mut pos) = from.checked_add((row_dir, col_dir)) else {
+        let Some(mut pos) = from.checked_add((rank_dir, file_dir)) else {
             return false;
         };
         while pos != to {
             if self.at(pos).is_some() {
                 return false;
             }
-            let Some(new_pos) = pos.checked_add((row_dir, col_dir)) else {
+            let Some(new_pos) = pos.checked_add((rank_dir, file_dir)) else {
                 return false;
             };
             pos = new_pos;
@@ -102,9 +102,9 @@ impl<S: Side + Clone> Board<S> {
 
     fn enumerate_pieces(&self, team: Team) -> HashSet<Square> {
         let mut pieces = HashSet::new();
-        for row in 0..8 {
-            for col in 0..8 {
-                if let Some(pos) = Pos::new(row, col) {
+        for rank in 0..8 {
+            for file in 0..8 {
+                if let Some(pos) = Pos::new(rank, file) {
                     let sq = Square::new(pos, self);
                     if let Some(piece) = sq.content()
                         && piece.team() == team
@@ -195,27 +195,27 @@ impl<S: Side + Clone> FromStr for Board<S> {
     type Err = String;
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let mut b = Self::new();
-        let mut rows = s.lines();
+        let mut ranks = s.lines();
         for i in 0..8 {
-            let row = rows
+            let rank = ranks
                 .next()
-                .ok_or_else(|| format!("Missing row {}!", i + 1))?;
-            let mut row = row.split(',');
+                .ok_or_else(|| format!("Missing rank {}!", i + 1))?;
+            let mut rank = rank.split(',');
             for j in 0..8 {
-                let square = row
+                let square = rank
                     .next()
-                    .ok_or_else(|| format!("Missing square in row {} col {}!", i + 1, j + 1))?;
+                    .ok_or_else(|| format!("Missing square in rank {} file {}!", i + 1, j + 1))?;
                 b.board[i][j] = match square {
                     EMPTY_SQUARE => None,
                     str => Some(Piece::from_str(str)?),
                 }
             }
-            if row.next().is_some() {
-                return Err(format!("Too many squares in row {}!", i + 1));
+            if rank.next().is_some() {
+                return Err(format!("Too many squares in rank {}!", i + 1));
             }
         }
-        if rows.next().is_some() {
-            return Err("Too many rows!".to_string());
+        if ranks.next().is_some() {
+            return Err("Too many ranks!".to_string());
         }
 
         Ok(b)
@@ -225,14 +225,14 @@ impl<S: Side + Clone> FromStr for Board<S> {
 impl Default for Board<White> {
     fn default() -> Self {
         match Self::from_str(concat!(
-            "bR,bN,bB,bQ,bK,bB,bN,bR\n",
-            "bP,bP,bP,bP,bP,bP,bP,bP\n",
-            "  ,  ,  ,  ,  ,  ,  ,  \n",
-            "  ,  ,  ,  ,  ,  ,  ,  \n",
-            "  ,  ,  ,  ,  ,  ,  ,  \n",
-            "  ,  ,  ,  ,  ,  ,  ,  \n",
+            "wR,wN,wB,wQ,wK,wB,wN,wR\n",
             "wP,wP,wP,wP,wP,wP,wP,wP\n",
-            "wR,wN,wB,wQ,wK,wB,wN,wR"
+            "  ,  ,  ,  ,  ,  ,  ,  \n",
+            "  ,  ,  ,  ,  ,  ,  ,  \n",
+            "  ,  ,  ,  ,  ,  ,  ,  \n",
+            "  ,  ,  ,  ,  ,  ,  ,  \n",
+            "bP,bP,bP,bP,bP,bP,bP,bP\n",
+            "bR,bN,bB,bQ,bK,bB,bN,bR"
         )) {
             Ok(board) => board,
             Err(err) => panic!("{err}"),
@@ -243,9 +243,12 @@ impl Default for Board<White> {
 impl<S: Side + Clone> std::fmt::Display for Board<S> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let mut str = String::new();
-        for row in &self.board {
+        for rank_i in (0..=7).rev() {
+            // for rank in &self.board {
+            let rank = &self.board[rank_i];
+            str += &(rank_i + 1).to_string();
             str += "|";
-            for square in row {
+            for square in rank {
                 if let Some(piece) = square {
                     str += &piece.to_string();
                 } else {
@@ -255,6 +258,8 @@ impl<S: Side + Clone> std::fmt::Display for Board<S> {
             }
             str += "\n";
         }
+        str += "   a  b  c  d  e  f  g  h";
+
         f.write_str(&str)
     }
 }

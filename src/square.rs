@@ -3,17 +3,17 @@ use crate::{Board, piece::Piece};
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
 pub struct Pos {
-    row: usize,
-    col: usize,
+    file: usize,
+    rank: usize,
 }
 
 impl Pos {
     #[must_use]
-    pub fn new(row: isize, col: isize) -> Option<Self> {
-        let row = usize::try_from(row).ok()?;
-        let col = usize::try_from(col).ok()?;
-        if row < 8 && col < 8 {
-            Some(Self { row, col })
+    pub fn new(rank: isize, file: isize) -> Option<Self> {
+        let rank = usize::try_from(rank).ok()?;
+        let file = usize::try_from(file).ok()?;
+        if rank < 8 && file < 8 {
+            Some(Self { file, rank })
         } else {
             None
         }
@@ -22,19 +22,19 @@ impl Pos {
     #[must_use]
     pub fn checked_add(self, (r, c): (isize, isize)) -> Option<Self> {
         Self::new(
-            isize::try_from(self.row).ok()? + r,
-            isize::try_from(self.col).ok()? + c,
+            isize::try_from(self.rank).ok()? + r,
+            isize::try_from(self.file).ok()? + c,
         )
     }
 
     #[must_use]
-    pub const fn row(&self) -> usize {
-        self.row
+    pub const fn rank(&self) -> usize {
+        self.rank
     }
 
     #[must_use]
-    pub const fn col(&self) -> usize {
-        self.col
+    pub const fn file(&self) -> usize {
+        self.file
     }
 }
 

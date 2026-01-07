@@ -44,10 +44,12 @@ impl<S: Side> LegalMove<S> {
         }
     }
 
+    #[must_use]
     pub const fn from(&self) -> Square {
         self.from
     }
 
+    #[must_use]
     pub const fn to(&self) -> Square {
         self.to
     }

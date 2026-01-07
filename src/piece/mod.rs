@@ -92,7 +92,7 @@ impl Piece {
             PieceType::Pawn => {
                 // TODO: en passant
                 // TODO: move 2 squares at the start
-                // TODO: transformation on last row
+                // TODO: transformation on last rank
                 let mut v = vec![];
                 checked_push(&mut v, from, (self.team.direction(), 0));
                 v

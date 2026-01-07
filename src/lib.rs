@@ -11,5 +11,9 @@ mod piece;
 mod square;
 
 pub use board::Board;
-pub use piece::team::{Black, Team, White};
+pub use movement::{LegalMove, RawMove};
+pub use piece::{
+    piece_type::PieceType,
+    team::{Black, Side, Team, White},
+};
 pub use square::{Pos, Square};
