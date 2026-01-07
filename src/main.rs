@@ -92,6 +92,7 @@ fn user_move<S: Side + Clone>(board: &Board<S>) -> Result<LegalMove<S>, String> 
 
     let mut mv = String::new();
     io::stdin().read_line(&mut mv).expect("Failed to read line");
+    println!("Playing {}", mv);
 
     let (piece, mv, mv_type) = parse_move(mv.trim())?;
 
