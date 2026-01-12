@@ -9,9 +9,11 @@ use std::{fmt::Debug, str::FromStr, vec};
 use crate::{Pos, movement::RawMove};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+#[allow(clippy::struct_field_names)]
 pub struct Piece {
     piece_type: PieceType,
     team: Team,
+    has_moved: bool,
 }
 
 fn checked_push(vec: &mut Vec<RawMove>, from: Pos, (c, r): (isize, isize)) {
@@ -91,10 +93,12 @@ impl Piece {
             }
             PieceType::Pawn => {
                 // TODO: en passant
-                // TODO: move 2 squares at the start
                 // TODO: transformation on last rank
                 let mut v = vec![];
                 checked_push(&mut v, from, (self.team.direction(), 0));
+                if !self.has_moved {
+                    checked_push(&mut v, from, (2 * self.team.direction(), 0));
+                }
                 v
             }
         }
@@ -106,6 +110,18 @@ impl Piece {
 
     pub const fn piece_type(self) -> PieceType {
         self.piece_type
+    }
+
+    pub const fn has_moved(self) -> bool {
+        self.has_moved
+    }
+
+    pub const fn touch_piece(self) -> Self {
+        Self {
+            piece_type: self.piece_type,
+            team: self.team,
+            has_moved: true,
+        }
     }
 }
 
@@ -132,7 +148,11 @@ impl FromStr for Piece {
         if s.next().is_some() {
             return Err("Too many characters for Piece".to_string());
         }
-        Ok(Self { piece_type, team })
+        Ok(Self {
+            piece_type,
+            team,
+            has_moved: false,
+        })
     }
 }
 

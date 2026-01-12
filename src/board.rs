@@ -94,6 +94,9 @@ impl<S: Side + Clone> Board<S> {
                 PieceType::Rook | PieceType::Bishop | PieceType::Queen => {
                     self.is_empty_between(sq.pos(), raw_move.to)
                 }
+                PieceType::Pawn => {
+                    !(raw_move.from.file() == raw_move.to.file() && self.at(raw_move.to).is_some())
+                }
                 _ => true,
             })
             .map(|raw_move| PossibleMove::new(sq, Square::new(raw_move.to, self)))
@@ -179,14 +182,14 @@ impl<S: Side + Clone> Board<S> {
     }
 
     #[must_use]
-    pub const fn apply_move(&self, mv: &LegalMove<S>) -> Board<S::Other> {
+    pub fn apply_move(&self, mv: &LegalMove<S>) -> Board<S::Other> {
         let mut new_board = Board {
             board: self.board,
             _side: PhantomData,
         };
 
         new_board.set(mv.from().pos(), None);
-        new_board.set(mv.to().pos(), mv.from().content());
+        new_board.set(mv.to().pos(), mv.from().content().map(Piece::touch_piece));
         new_board
     }
 }
