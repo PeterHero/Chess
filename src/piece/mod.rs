@@ -96,6 +96,8 @@ impl Piece {
                 // TODO: transformation on last rank
                 let mut v = vec![];
                 checked_push(&mut v, from, (self.team.direction(), 0));
+                checked_push(&mut v, from, (self.team.direction(), 1));
+                checked_push(&mut v, from, (self.team.direction(), -1));
                 if !self.has_moved {
                     checked_push(&mut v, from, (2 * self.team.direction(), 0));
                 }

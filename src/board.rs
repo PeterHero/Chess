@@ -95,7 +95,11 @@ impl<S: Side + Clone> Board<S> {
                     self.is_empty_between(sq.pos(), raw_move.to)
                 }
                 PieceType::Pawn => {
-                    !(raw_move.from.file() == raw_move.to.file() && self.at(raw_move.to).is_some())
+                    if raw_move.from.file() == raw_move.to.file() {
+                        self.at(raw_move.to).is_none()
+                    } else {
+                        self.at(raw_move.to).is_some()
+                    }
                 }
                 _ => true,
             })
