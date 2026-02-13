@@ -121,13 +121,13 @@ fn user_move<S: Side + Clone>(board: &Board<S>) -> Result<LegalMove<S>, String> 
     }
 
     let legal_move = moves.into_iter().find(|legal_move| {
-        legal_move.from() == Square::new(mv.from, board)
-            && legal_move.to() == Square::new(mv.to, board)
+        legal_move.data().from() == Square::new(mv.from, board)
+            && legal_move.data().to() == Square::new(mv.to, board)
     });
 
     let legal_move = legal_move.ok_or("The move to ending square is not legal")?;
 
-    match (mv_type, legal_move.to().content()) {
+    match (mv_type, legal_move.data().to().content()) {
         (MoveType::Simple, Some(_)) => Err("Specified non-capture move type: '-', but ending square is not empty. Use 'x' instead.".to_string()),
         (MoveType::Capture, None) => Err("Specified caputre move type: 'x', but ending square is empty. Use '-' instead.".to_string()),
         (MoveType::Simple, None) => Ok(legal_move),

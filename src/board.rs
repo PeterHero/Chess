@@ -2,7 +2,7 @@ use std::collections::HashSet;
 use std::marker::PhantomData;
 use std::str::FromStr;
 
-use crate::movement::{LegalMove, PossibleMove};
+use crate::movement::{LegalMove, Move, PossibleMove};
 use crate::piece::Piece;
 use crate::piece::piece_type::PieceType;
 use crate::piece::team::{Side, Team, White};
@@ -103,7 +103,15 @@ impl<S: Side + Clone> Board<S> {
                 }
                 _ => true,
             })
-            .map(|raw_move| PossibleMove::new(sq, Square::new(raw_move.to, self)))
+            .map(|raw_move| {
+                let from = Square::new(raw_move.from, self);
+                let to = Square::new(raw_move.to, self);
+                let move_data = match self.at(raw_move.to) {
+                    Some(_) => Move::Capture { from, to },
+                    None => Move::Simple { from, to },
+                };
+                PossibleMove::new(move_data)
+            })
             .collect()
     }
 
@@ -130,7 +138,7 @@ impl<S: Side + Clone> Board<S> {
         for sq in team_pieces {
             let moves = self.possible_moves(sq);
             for mv in moves {
-                attacked.insert(mv.to());
+                attacked.insert(mv.data().to());
             }
         }
 
@@ -145,7 +153,7 @@ impl<S: Side + Clone> Board<S> {
             self.possible_moves(sq)
                 .into_iter()
                 .filter(|m| self.is_legal(m))
-                .map(|m| LegalMove::new(m.from(), m.to()))
+                .map(|m| LegalMove::new(m.data()))
                 .collect()
         } else {
             vec![]
@@ -166,14 +174,14 @@ impl<S: Side + Clone> Board<S> {
     }
 
     fn is_legal(&self, mv: &PossibleMove) -> bool {
-        let Some(piece) = mv.from().content() else {
+        let Some(piece) = mv.data().from().content() else {
             return false;
         };
 
         // board after applied move
         let mut new_board = self.clone();
-        new_board.set(mv.from().pos(), None);
-        new_board.set(mv.to().pos(), mv.from().content());
+        new_board.set(mv.data().from().pos(), None);
+        new_board.set(mv.data().to().pos(), mv.data().from().content());
 
         let attacked = new_board.attacked_squares(piece.team().enemy());
         if attacked.iter().any(|sq| {
@@ -192,8 +200,11 @@ impl<S: Side + Clone> Board<S> {
             _side: PhantomData,
         };
 
-        new_board.set(mv.from().pos(), None);
-        new_board.set(mv.to().pos(), mv.from().content().map(Piece::touch_piece));
+        new_board.set(mv.data().from().pos(), None);
+        new_board.set(
+            mv.data().to().pos(),
+            mv.data().from().content().map(Piece::touch_piece),
+        );
         new_board
     }
 }
